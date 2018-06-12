@@ -36,7 +36,10 @@ redis.prototype.publish = function(channel, data) {
 
 redis.prototype.read = function(hash, callback) {
     var that = this;
-    this.client.hgetall(hash, callback);
+    console.log("redis read >> " + hash);
+    return (new Promise((resolve, reject) => {
+        that.client.hgetall(hash, callback);
+    }));
 };
 
 redis.prototype.quit = function() {

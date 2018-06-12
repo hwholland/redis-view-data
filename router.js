@@ -1,25 +1,28 @@
 const redis = require('./redis');
-var argv = require('minimist')(process.argv.slice(2));
+//var argv = require('minimist')(process.argv.slice(2));
 
 function router(oApp, oExpress) {
     'use strict';
     this.router = oExpress.Router();
     this.app = oApp;
     this.app.use(this.router);
+    /*
     this.redisHost = argv.redisHost;
     this.redisPort = argv.redisPort;
     this.redisInstance = argv.redisInstance;
+    */
+    this.redisHost = '127.0.0.1';
+    this.redisPort = 6379;
+    this.redisInstance = 0;
 }
 
 router.prototype.loadRoutes = function() {
     'use strict';
     var that = this;
 
-    this.app.post("/view", this.jsonParser, function(oRequest, oResponse) {
+    this.app.post("/read/hash", this.jsonParser, function(oRequest, oResponse) {
         var redisClient = new redis(that.redisHost, that.redisPort, that.redisInstance);
         var aKeys = oRequest.body.keys;
-        console.log(aKeys);
-
         var counter = 0;
         var data = [];
         var pPromise = new Promise((resolve, reject) => {
@@ -28,18 +31,28 @@ router.prototype.loadRoutes = function() {
                 if (error) {
                     console.dir(error);
                 }
-                console.log(response);
                 data.push(response);
-                if (counter >= aKeys.length) {
+                if (((typeof aKeys != "undefined") &&
+                    (typeof aKeys.valueOf() == "string")) &&
+                (aKeys.length > 0)) {
                     resolve(data);
                 }
-
+                else if (counter >= aKeys.length) {
+                    resolve(data);
+                }
             }
-            aKeys.forEach((item) => {
-                redisClient.read(item, fnCallback);
-            });
+            if (((typeof aKeys != "undefined") &&
+                    (typeof aKeys.valueOf() == "string")) &&
+                (aKeys.length > 0)) {
+                redisClient.read(aKeys, fnCallback);
+            } else {
+                aKeys.forEach((item) => {
+                    redisClient.read(item, fnCallback);
+                });
+            }
+
         }).then(function(data) {
-        	oResponse.send(data);
+            oResponse.send(data);
         });
     });
 };
